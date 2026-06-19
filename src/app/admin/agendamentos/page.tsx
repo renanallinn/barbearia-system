@@ -2,12 +2,20 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatTime, formatCurrency } from "@/lib/utils";
 import AppointmentActions from "@/components/admin/AppointmentActions";
 import Badge from "@/components/ui/Badge";
+import Link from "next/link";
 
 const statusVariant = {
   pendente: "warning",
   confirmado: "success",
   cancelado: "danger",
   concluido: "default",
+} as const;
+
+const statusLabel = {
+  pendente: "Pendente",
+  confirmado: "Confirmado",
+  cancelado: "Cancelado",
+  concluido: "Concluído",
 } as const;
 
 export default async function AgendamentosPage({
@@ -17,25 +25,25 @@ export default async function AgendamentosPage({
 }) {
   const params = await searchParams;
   const supabase = await createClient();
-  const today = new Date().toISOString().split("T")[0];
 
-  const dateFilter = params.data || today;
-
+  // Sem filtro de data padrão — mostra todos
   let query = supabase
     .from("appointments")
     .select("*, barbers(name), services(name, price, duration_minutes)")
-    .order("date", { ascending: true })
+    .order("date", { ascending: false })
     .order("start_time", { ascending: true });
 
-  if (dateFilter) query = query.eq("date", dateFilter);
+  if (params.data) query = query.eq("date", params.data);
   if (params.barbeiro) query = query.eq("barber_id", params.barbeiro);
   if (params.status) query = query.eq("status", params.status);
 
-  const { data: appointments } = await query;
+  const { data: appointments, error } = await query;
   const { data: barbers } = await supabase
     .from("barbers")
     .select("id, name")
     .eq("active", true);
+
+  const hasFilters = !!(params.data || params.barbeiro || params.status);
 
   return (
     <div>
@@ -43,19 +51,26 @@ export default async function AgendamentosPage({
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">Agendamentos</h1>
           <p className="text-zinc-500 text-sm mt-1">
-            {appointments?.length || 0} resultado(s)
+            {appointments?.length || 0} agendamento(s) encontrado(s)
           </p>
         </div>
+        <Link
+          href="/agendamento"
+          target="_blank"
+          className="bg-amber-500 hover:bg-amber-400 text-black font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
+        >
+          + Novo agendamento
+        </Link>
       </div>
 
       {/* Filters */}
-      <form className="bg-white border border-zinc-100 rounded-xl p-4 mb-6 flex flex-wrap gap-3">
+      <form method="GET" className="bg-white border border-zinc-100 rounded-xl p-4 mb-6 flex flex-wrap gap-3 items-end">
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-zinc-500">Data</label>
           <input
             type="date"
             name="data"
-            defaultValue={dateFilter}
+            defaultValue={params.data || ""}
             className="border border-zinc-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
           />
         </div>
@@ -88,13 +103,21 @@ export default async function AgendamentosPage({
             <option value="cancelado">Cancelado</option>
           </select>
         </div>
-        <div className="flex items-end">
+        <div className="flex gap-2">
           <button
             type="submit"
             className="bg-amber-500 hover:bg-amber-400 text-black font-medium text-sm px-4 py-1.5 rounded-lg transition-colors"
           >
             Filtrar
           </button>
+          {hasFilters && (
+            <Link
+              href="/admin/agendamentos"
+              className="border border-zinc-300 hover:bg-zinc-50 text-zinc-600 font-medium text-sm px-4 py-1.5 rounded-lg transition-colors"
+            >
+              Limpar
+            </Link>
+          )}
         </div>
       </form>
 
@@ -132,7 +155,7 @@ export default async function AgendamentosPage({
                     </td>
                     <td className="px-4 py-3">
                       <Badge variant={statusVariant[appt.status as keyof typeof statusVariant]}>
-                        {appt.status}
+                        {statusLabel[appt.status as keyof typeof statusLabel] || appt.status}
                       </Badge>
                     </td>
                     <td className="px-4 py-3">
@@ -144,9 +167,21 @@ export default async function AgendamentosPage({
             </table>
           </div>
         ) : (
-          <p className="text-center text-zinc-400 py-12">
-            Nenhum agendamento encontrado para os filtros selecionados.
-          </p>
+          <div className="text-center py-16">
+            <p className="text-zinc-400 text-sm">
+              {hasFilters
+                ? "Nenhum agendamento encontrado com esses filtros."
+                : "Nenhum agendamento ainda."}
+            </p>
+            {hasFilters && (
+              <Link
+                href="/admin/agendamentos"
+                className="text-amber-600 text-sm hover:underline mt-2 inline-block"
+              >
+                Ver todos os agendamentos
+              </Link>
+            )}
+          </div>
         )}
       </div>
     </div>
