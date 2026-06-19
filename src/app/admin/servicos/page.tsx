@@ -25,6 +25,11 @@ export default async function ServicosPage() {
         </p>
       </div>
 
+      <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-3 mb-6 text-sm text-amber-800">
+        💡 <strong>Dica:</strong> Clique nos nomes dos barbeiros abaixo de cada serviço para associá-los.
+        Se nenhum barbeiro for associado, todos os serviços aparecem disponíveis para todos os barbeiros no agendamento.
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Services list */}
         <div className="bg-white border border-zinc-100 rounded-xl overflow-hidden">

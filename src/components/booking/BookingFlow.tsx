@@ -70,17 +70,35 @@ export default function BookingFlow() {
     if (!data.barberId) return;
     setLoading(true);
     Promise.all([
+      // Busca serviços associados ao barbeiro; se não houver, retorna todos os ativos
       supabase
-        .from("services")
-        .select("*, barber_services!inner(barber_id)")
-        .eq("barber_services.barber_id", data.barberId)
-        .eq("active", true)
-        .order("name"),
+        .from("barber_services")
+        .select("service_id")
+        .eq("barber_id", data.barberId)
+        .then(async ({ data: bs }) => {
+          if (bs && bs.length > 0) {
+            const ids = bs.map((b: { service_id: string }) => b.service_id);
+            const { data: svcs } = await supabase
+              .from("services")
+              .select("*")
+              .in("id", ids)
+              .eq("active", true)
+              .order("name");
+            return svcs || [];
+          } else {
+            const { data: svcs } = await supabase
+              .from("services")
+              .select("*")
+              .eq("active", true)
+              .order("name");
+            return svcs || [];
+          }
+        }),
       supabase
         .from("working_hours")
         .select("*")
         .eq("barber_id", data.barberId),
-    ]).then(([{ data: svcs }, { data: wh }]) => {
+    ]).then(([svcs, { data: wh }]) => {
       setServices(svcs || []);
       setWorkingHours(wh || []);
       setLoading(false);
@@ -95,10 +113,8 @@ export default function BookingFlow() {
     const dayOfWeek = dateObj.getDay();
     const wh = workingHours.find((w) => w.day_of_week === dayOfWeek);
 
-    if (!wh) {
-      setAvailableSlots([]);
-      return;
-    }
+    // Se não houver horário configurado para o dia, usa 08:00–18:00 como padrão
+    const effectiveWh = wh || { start_time: "08:00", end_time: "18:00" };
 
     setLoading(true);
     Promise.all([
@@ -116,7 +132,7 @@ export default function BookingFlow() {
     ]).then(([{ data: appts }, { data: blocked }]) => {
       setBookedSlots(appts as Appointment[] || []);
       const dur = selectedService?.duration_minutes || 30;
-      const all = generateSlots(wh.start_time, wh.end_time, dur);
+      const all = generateSlots(effectiveWh.start_time, effectiveWh.end_time, dur);
 
       const free = all.filter((slot) => {
         const slotStart = slot;
@@ -155,6 +171,7 @@ export default function BookingFlow() {
   }
 
   function isWorkingDay(dateStr: string) {
+    // Se não há horários configurados, todos os dias são válidos
     if (!workingHours.length) return true;
     const dateObj = new Date(dateStr + "T12:00:00");
     const day = dateObj.getDay();
