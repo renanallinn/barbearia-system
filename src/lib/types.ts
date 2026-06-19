@@ -40,6 +40,38 @@ export interface BlockedSlot {
   reason: string | null;
 }
 
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  stripe_price_id: string | null;
+  stripe_product_id: string | null;
+  active: boolean;
+  created_at: string;
+  plan_services?: { service_id: string; services?: Service }[];
+}
+
+export interface ClientProfile {
+  id: string;
+  name: string;
+  phone: string | null;
+  stripe_customer_id: string | null;
+  created_at: string;
+}
+
+export interface ClientSubscription {
+  id: string;
+  client_id: string;
+  plan_id: string;
+  stripe_subscription_id: string | null;
+  stripe_customer_id: string | null;
+  status: "active" | "past_due" | "canceled" | "paused";
+  current_period_end: string | null;
+  created_at: string;
+  subscription_plans?: SubscriptionPlan;
+}
+
 export interface Appointment {
   id: string;
   barber_id: string;

@@ -11,6 +11,7 @@ const navItems = [
   { href: "/admin/barbeiros", label: "Barbeiros", icon: "✂️" },
   { href: "/admin/servicos", label: "Serviços", icon: "💈" },
   { href: "/admin/horarios", label: "Horários de Trabalho", icon: "🕐" },
+  { href: "/admin/assinaturas", label: "Assinaturas", icon: "💳" },
 ];
 
 export default function AdminSidebar() {

@@ -15,6 +15,12 @@ export default async function AdminLayout({
     redirect("/login");
   }
 
+  // Block clients from accessing admin panel
+  const adminEmail = process.env.ADMIN_EMAIL || "renan.allinn@gmail.com";
+  if (user.email !== adminEmail) {
+    redirect("/conta");
+  }
+
   return (
     <div className="min-h-screen bg-zinc-100 flex">
       <AdminSidebar />
