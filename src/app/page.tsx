@@ -1,23 +1,51 @@
 export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { Barber, Service } from "@/lib/types";
+import { Barber, Service, SubscriptionPlan } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
+
+function PlansSection({ plans }: { plans: SubscriptionPlan[] }) {
+  if (!plans || plans.length === 0) return null;
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {plans.map((plan) => (
+        <div key={plan.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 flex flex-col hover:border-amber-500/50 transition-colors">
+          <h3 className="text-xl font-bold text-white mb-1">{plan.name}</h3>
+          {plan.description && <p className="text-zinc-400 text-sm mb-4">{plan.description}</p>}
+          <div className="mb-4">
+            <span className="text-3xl font-bold text-amber-400">{formatCurrency(plan.price)}</span>
+            <span className="text-zinc-500 text-sm">/mês</span>
+          </div>
+          {plan.plan_services && plan.plan_services.length > 0 && (
+            <ul className="space-y-1.5 mb-6 flex-1">
+              {plan.plan_services.map((ps) => (
+                <li key={ps.service_id} className="flex items-center gap-2 text-sm text-zinc-300">
+                  <span className="text-amber-500">✓</span>
+                  {ps.services?.name}
+                </li>
+              ))}
+            </ul>
+          )}
+          <Link
+            href="/conta/registro"
+            className="block text-center bg-amber-500 hover:bg-amber-400 text-black font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors"
+          >
+            Assinar plano
+          </Link>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default async function HomePage() {
   const supabase = await createClient();
 
-  const { data: barbers } = await supabase
-    .from("barbers")
-    .select("*")
-    .eq("active", true)
-    .order("name");
-
-  const { data: services } = await supabase
-    .from("services")
-    .select("*")
-    .eq("active", true)
-    .order("name");
+  const [{ data: barbers }, { data: services }, { data: plans }] = await Promise.all([
+    supabase.from("barbers").select("*").eq("active", true).order("name"),
+    supabase.from("services").select("*").eq("active", true).order("name"),
+    supabase.from("subscription_plans").select("*, plan_services(service_id, services(name))").eq("active", true).order("price"),
+  ]);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
@@ -37,6 +65,12 @@ export default async function HomePage() {
             <a href="#barbeiros" className="text-sm text-zinc-400 hover:text-white transition-colors hidden sm:block">
               Barbeiros
             </a>
+            <Link href="/planos" className="text-sm text-zinc-400 hover:text-white transition-colors hidden sm:block">
+              Planos
+            </Link>
+            <Link href="/conta" className="text-sm text-zinc-400 hover:text-white transition-colors hidden sm:block">
+              Minha conta
+            </Link>
             <Link
               href="/agendamento"
               className="bg-amber-500 hover:bg-amber-400 text-black font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
@@ -70,10 +104,10 @@ export default async function HomePage() {
             Agendar horário →
           </Link>
           <a
-            href="#servicos"
+            href="#planos"
             className="border border-zinc-700 hover:border-zinc-500 text-zinc-300 font-medium px-8 py-3.5 rounded-xl text-base transition-colors"
           >
-            Ver serviços
+            Ver planos
           </a>
         </div>
       </section>
@@ -146,6 +180,13 @@ export default async function HomePage() {
             </div>
           )}
         </div>
+      </section>
+
+      {/* Subscription Plans */}
+      <section id="planos" className="max-w-6xl mx-auto px-4 py-16">
+        <h2 className="text-2xl font-bold text-center mb-2">Planos de Assinatura</h2>
+        <p className="text-zinc-400 text-center mb-10">Assine e pague um preço fixo por mês, sem surpresas</p>
+        <PlansSection plans={(plans as SubscriptionPlan[]) || []} />
       </section>
 
       {/* CTA */}
