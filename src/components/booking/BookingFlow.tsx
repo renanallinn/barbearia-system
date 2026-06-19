@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Barber, Service, WorkingHour, Appointment } from "@/lib/types";
+import DatePicker from "@/components/booking/DatePicker";
 import {
   formatCurrency,
   formatDate,
@@ -386,46 +387,38 @@ export default function BookingFlow() {
             <strong>{selectedService?.name}</strong> com <strong>{selectedBarber?.name}</strong>
           </p>
 
-          <div className="bg-white border border-zinc-200 rounded-xl p-5 mb-4">
-            <label className="text-sm font-medium text-zinc-700 block mb-2">
-              Data do agendamento
-            </label>
-            <input
-              type="date"
-              min={getMinDate()}
-              value={data.date}
-              onChange={(e) => {
-                setData((d) => ({ ...d, date: e.target.value, time: "" }));
-                setAvailableSlots([]);
-              }}
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-            />
-            {data.date && !isWorkingDay(data.date) && (
-              <p className="text-red-500 text-sm mt-2">
-                {selectedBarber?.name} não atende neste dia da semana.
-              </p>
-            )}
-          </div>
+          <DatePicker
+            selected={data.date}
+            onSelect={(date) => {
+              setData((d) => ({ ...d, date, time: "" }));
+              setAvailableSlots([]);
+            }}
+            workingHours={workingHours}
+          />
 
-          {data.date && isWorkingDay(data.date) && (
-            <div className="bg-white border border-zinc-200 rounded-xl p-5">
+          {data.date && (
+            <div className="mt-4 bg-white border border-zinc-200 rounded-xl p-5">
               <p className="text-sm font-medium text-zinc-700 mb-3">
-                Horários disponíveis em {formatDate(data.date)}
+                Horários disponíveis em <strong>{formatDate(data.date)}</strong>
               </p>
               {loading ? (
-                <p className="text-zinc-400 text-sm">Carregando horários...</p>
+                <div className="flex items-center gap-2 text-zinc-400 text-sm py-2">
+                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>
+                  Buscando horários...
+                </div>
               ) : availableSlots.length > 0 ? (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   {availableSlots.map((slot) => (
                     <button
                       key={slot}
-                      onClick={() =>
-                        setData((d) => ({ ...d, time: slot }))
-                      }
-                      className={`py-2.5 rounded-lg text-sm font-medium border-2 transition-all ${
+                      onClick={() => setData((d) => ({ ...d, time: slot }))}
+                      className={`py-2.5 rounded-xl text-sm font-semibold border-2 transition-all ${
                         data.time === slot
-                          ? "border-amber-500 bg-amber-500 text-black"
-                          : "border-zinc-200 hover:border-amber-400 text-zinc-700"
+                          ? "border-amber-500 bg-amber-500 text-black shadow-sm"
+                          : "border-zinc-200 hover:border-amber-400 hover:bg-amber-50 text-zinc-700"
                       }`}
                     >
                       {formatTime(slot)}
@@ -433,9 +426,10 @@ export default function BookingFlow() {
                   ))}
                 </div>
               ) : (
-                <p className="text-zinc-400 text-sm">
-                  Não há horários disponíveis nesta data. Tente outro dia.
-                </p>
+                <div className="text-center py-4">
+                  <p className="text-zinc-400 text-sm">Nenhum horário disponível neste dia.</p>
+                  <p className="text-zinc-400 text-xs mt-1">Escolha outra data no calendário.</p>
+                </div>
               )}
             </div>
           )}
