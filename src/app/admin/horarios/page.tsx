@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { DAYS_PT, formatTime } from "@/lib/utils";
 import WorkingHoursForm from "@/components/admin/WorkingHoursForm";
 import BlockedSlotForm from "@/components/admin/BlockedSlotForm";
+import BarberSelector from "@/components/admin/BarberSelector";
+import DeleteBlockedSlot from "@/components/admin/DeleteBlockedSlot";
 
 export default async function HorariosPage({
   searchParams,
@@ -47,25 +49,10 @@ export default async function HorariosPage({
 
       {/* Barber selector */}
       <div className="bg-white border border-zinc-100 rounded-xl p-4 mb-6">
-        <form className="flex items-center gap-4">
+        <div className="flex items-center gap-4">
           <label className="text-sm font-medium text-zinc-700">Barbeiro:</label>
-          <select
-            name="barbeiro"
-            defaultValue={selectedBarberId}
-            onChange={(e) => {
-              const url = new URL(window.location.href);
-              url.searchParams.set("barbeiro", e.target.value);
-              window.location.href = url.toString();
-            }}
-            className="border border-zinc-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-          >
-            {barbers?.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
-        </form>
+          <BarberSelector barbers={barbers || []} selectedId={selectedBarberId} />
+        </div>
       </div>
 
       {selectedBarberId && (
@@ -121,6 +108,7 @@ export default async function HorariosPage({
                         {slot.reason && ` · ${slot.reason}`}
                       </p>
                     </div>
+                    <DeleteBlockedSlot id={slot.id} />
                   </div>
                 ))
               ) : (
